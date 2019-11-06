@@ -1,0 +1,39 @@
+{
+  "name": "@openmessage/node",
+  "version": "0.0.1",
+  "description": "An OpenMessage helper library",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.js",
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "tsc",
+    "test": "lab"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenMessage/om-node.git"
+  },
+  "keywords": [
+    "OpenMessage",
+    "Node",
+    "SDK"
+  ],
+  "author": "David Roncancio <david@openmessage.io>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OpenMessage/om-node/issues"
+  },
+  "homepage": "https://github.com/OpenMessage/om-node#readme",
+  "dependencies": {
+    "@hapi/joi": "^16.1.7",
+    "@hapi/wreck": "^16.0.1",
+    "source-map-support": "^0.5.16"
+  },
+  "devDependencies": {
+    "@hapi/code": "^7.0.0",
+    "@hapi/lab": "^21.0.0",
+    "@types/hapi__joi": "^16.0.3",
+    "@types/source-map": "^0.5.7",
+    "typescript": "^3.6.4"
+  }
+}
