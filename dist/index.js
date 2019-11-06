@@ -42,10 +42,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 var Joi = __importStar(require("@hapi/joi"));
-var API = __importStar(require("./api"));
+var wreck_1 = __importDefault(require("@hapi/wreck"));
 var internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
 };
@@ -54,21 +57,66 @@ var schemas = {
         phone: Joi.string().regex(internals.phone).required()
     }).required()
 };
+var wreck = wreck_1.default.defaults({
+    json: true
+});
 var OM = /** @class */ (function () {
     function OM(apiKey, apiSecret, baseUrl) {
+        var _this = this;
         if (!apiKey || !apiSecret) {
             throw new Error('credentials are required');
         }
         this.baseUrl = baseUrl || 'https://api.omsg.io/auth/token';
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
+        this.authorized = false;
+        this.authorize().then(function (token) {
+            _this.token = token;
+        });
     }
     OM.prototype.createContact = function (contact) {
         return __awaiter(this, void 0, void 0, function () {
+            var payload;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        Joi.assert(contact, schemas.createContact, '[OM] Create Contact'), { allowUnknown: true };
-                        return [4 /*yield*/, API.createContact(contact)];
-                    case 1: return [2 /*return*/, _a.sent()];
+                        Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
+                        if (!this.authorized) {
+                            throw new Error('[OM] Not authorized');
+                        }
+                        return [4 /*yield*/, wreck.post(this.baseUrl + "/contacts", {
+                                payload: contact,
+                                headers: {
+                                    authorization: "Bearer " + this.token
+                                }
+                            })];
+                    case 1:
+                        payload = (_a.sent()).payload;
+                        return [2 /*return*/, payload];
+                }
+            });
+        });
+    };
+    ;
+    OM.prototype.authorize = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var payload;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, wreck.post(this.baseUrl + "/auth/token", {
+                            payload: {
+                                apiKey: this.apiKey,
+                                apiSecret: this.apiSecret
+                            }
+                        })];
+                    case 1:
+                        payload = (_a.sent()).payload;
+                        if (payload.accessToken) {
+                            this.authorized = true;
+                            this.token = payload.accessToken;
+                            console.log('[OM] - Authorized', payload.accessToken);
+                        }
+                        return [2 /*return*/, payload.accessToken];
                 }
             });
         });
