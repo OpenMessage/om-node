@@ -1,7 +1,6 @@
 import 'source-map-support/register'
 import * as Joi from '@hapi/joi'
 import Wreck from '@hapi/wreck';
-import { access } from 'fs';
 
 const internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
@@ -25,7 +24,7 @@ export class OM {
     token?: string;
     authorized: boolean;
 
-    constructor(apiKey: string, apiSecret: string, baseUrl: string) {
+    constructor(apiKey: string, apiSecret: string, baseUrl?: string) {
 
         if(!apiKey || !apiSecret) {
             throw new Error('credentials are required');

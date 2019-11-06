@@ -5,7 +5,7 @@ export declare class OM {
     apiSecret: string;
     token?: string;
     authorized: boolean;
-    constructor(apiKey: string, apiSecret: string, baseUrl: string);
+    constructor(apiKey: string, apiSecret: string, baseUrl?: string);
     createContact(contact: object): Promise<any>;
     authorize(): Promise<any>;
 }
