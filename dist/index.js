@@ -49,6 +49,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 var Joi = __importStar(require("@hapi/joi"));
 var wreck_1 = __importDefault(require("@hapi/wreck"));
+var AuthStatus;
+(function (AuthStatus) {
+    AuthStatus[AuthStatus["Unauthorized"] = 0] = "Unauthorized";
+    AuthStatus[AuthStatus["Authorizing"] = 1] = "Authorizing";
+    AuthStatus[AuthStatus["Authorized"] = 2] = "Authorized";
+})(AuthStatus || (AuthStatus = {}));
 var internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
 };
@@ -60,20 +66,33 @@ var schemas = {
 var wreck = wreck_1.default.defaults({
     json: true
 });
+var requestBuffer = [];
 var OM = /** @class */ (function () {
     function OM(apiKey, apiSecret, baseUrl) {
         var _this = this;
         if (!apiKey || !apiSecret) {
             throw new Error('credentials are required');
         }
-        this.baseUrl = baseUrl || 'https://api.omsg.io/auth/token';
+        this.baseUrl = baseUrl || 'https://api.omsg.io';
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
-        this.authorized = false;
+        this.authstatus = AuthStatus.Authorizing;
         this.authorize().then(function (token) {
             _this.token = token;
+            _this.authstatus = AuthStatus.Authorized;
         });
     }
+    OM.prototype.untilAuthorizationIsDone = function () {
+        var _this = this;
+        return new Promise(function (resolve) {
+            var checker = setInterval(function () {
+                if (AuthStatus.Authorized === _this.authstatus) {
+                    clearInterval(checker);
+                    resolve(true);
+                }
+            }, 100);
+        });
+    };
     OM.prototype.createContact = function (contact) {
         return __awaiter(this, void 0, void 0, function () {
             var payload;
@@ -81,16 +100,18 @@ var OM = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
-                        if (!this.authorized) {
-                            throw new Error('[OM] Not authorized');
-                        }
-                        return [4 /*yield*/, wreck.post(this.baseUrl + "/contacts", {
-                                payload: contact,
-                                headers: {
-                                    authorization: "Bearer " + this.token
-                                }
-                            })];
+                        if (!(AuthStatus.Authorizing === this.authstatus)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.untilAuthorizationIsDone()];
                     case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [4 /*yield*/, wreck.post(this.baseUrl + "/contacts", {
+                            payload: contact,
+                            headers: {
+                                authorization: "Bearer " + this.token
+                            }
+                        })];
+                    case 3:
                         payload = (_a.sent()).payload;
                         return [2 /*return*/, payload];
                 }
@@ -112,7 +133,6 @@ var OM = /** @class */ (function () {
                     case 1:
                         payload = (_a.sent()).payload;
                         if (payload.accessToken) {
-                            this.authorized = true;
                             this.token = payload.accessToken;
                             console.log('[OM] - Authorized', payload.accessToken);
                         }

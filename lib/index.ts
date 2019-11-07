@@ -2,6 +2,12 @@ import 'source-map-support/register'
 import * as Joi from '@hapi/joi'
 import Wreck from '@hapi/wreck';
 
+enum AuthStatus {
+    Unauthorized,
+    Authorizing,
+    Authorized
+}
+
 const internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
 };
@@ -16,13 +22,15 @@ const wreck = Wreck.defaults({
     json: true
 });
 
+const requestBuffer = [];
+
 export class OM {
 
     baseUrl: string;
     apiKey: string;
     apiSecret: string;
     token?: string;
-    authorized: boolean;
+    authstatus: AuthStatus;
 
     constructor(apiKey: string, apiSecret: string, baseUrl?: string) {
 
@@ -30,14 +38,27 @@ export class OM {
             throw new Error('credentials are required');
         }
 
-        this.baseUrl = baseUrl || 'https://api.omsg.io/auth/token';
+        this.baseUrl = baseUrl || 'https://api.omsg.io';
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
-        this.authorized = false;
+
+        this.authstatus = AuthStatus.Authorizing;
 
         this.authorize().then((token: string) => {
 
             this.token = token;
+            this.authstatus = AuthStatus.Authorized;
+        });
+    }
+
+    untilAuthorizationIsDone () {
+        return new Promise((resolve) => {
+            const checker = setInterval(() => {
+                if (AuthStatus.Authorized === this.authstatus) {
+                    clearInterval(checker);
+                    resolve(true);
+                }
+            }, 100);
         });
     }
 
@@ -45,8 +66,8 @@ export class OM {
 
         Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
 
-        if(!this.authorized) {
-            throw new Error('[OM] Not authorized');
+        if (AuthStatus.Authorizing === this.authstatus) {
+            await this.untilAuthorizationIsDone();
         }
 
         const { payload } = await wreck.post(`${this.baseUrl}/contacts`, {
@@ -69,7 +90,6 @@ export class OM {
         });
 
         if(payload.accessToken) {
-            this.authorized = true;
             this.token = payload.accessToken;
             console.log('[OM] - Authorized', payload.accessToken);
         }
