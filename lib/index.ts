@@ -1,7 +1,6 @@
 import 'source-map-support/register'
 import * as Joi from '@hapi/joi'
 import Wreck from '@hapi/wreck';
-import { access } from 'fs';
 
 const internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
@@ -17,66 +16,36 @@ const wreck = Wreck.defaults({
     json: true
 });
 
-export class OM {
+export async function OM (
+        apiKey: string,
+        apiSecret: string,
+        baseUrl: string = 'https://api.omsg.io'
+    ) {
 
-    baseUrl: string;
-    apiKey: string;
-    apiSecret: string;
-    token?: string;
-    authorized: boolean;
-
-    constructor(apiKey: string, apiSecret: string, baseUrl: string) {
-
-        if(!apiKey || !apiSecret) {
-            throw new Error('credentials are required');
-        }
-
-        this.baseUrl = baseUrl || 'https://api.omsg.io/auth/token';
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.authorized = false;
-
-        this.authorize().then((token: string) => {
-
-            this.token = token;
-        });
+    if(!apiKey || !apiSecret) {
+        throw new Error('credentials are required');
     }
 
-    async createContact(contact: object) {
+    const result: any = await wreck.post(`${baseUrl}/auth/token`, {
+        payload: { apiKey, apiSecret }
+    });
 
-        Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
+    const token = result.payload.accessToken;
 
-        if(!this.authorized) {
-            throw new Error('[OM] Not authorized');
+    return {
+
+        createContact: async (contact: object) => {
+
+            Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
+
+            const { payload } = await wreck.post(`${baseUrl}/contacts`, {
+                payload: contact,
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            });
+
+            return payload;
         }
-
-        const { payload } = await wreck.post(`${this.baseUrl}/contacts`, {
-            payload: contact,
-            headers: {
-                authorization: `Bearer ${this.token}`
-            }
-        });
-
-        return payload;
     };
-
-    async authorize() {
-
-        const { payload } = await wreck.post(`${this.baseUrl}/auth/token`, {
-            payload: {
-                apiKey: this.apiKey,
-                apiSecret: this.apiSecret
-            }
-        });
-
-        if(payload.accessToken) {
-            this.authorized = true;
-            this.token = payload.accessToken;
-            console.log('[OM] - Authorized', payload.accessToken);
-        }
-
-        return payload.accessToken;
-    };
-
 };
-

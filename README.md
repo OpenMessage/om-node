@@ -15,7 +15,7 @@ The documentation for OpenMessage Node library can be found https://github.com/O
 ```javascript
 const OM = require('@openmessage/node');
 
-const om = OM(process.env.API_KEY, process.env.API_SECRET);
+const om = await OM(process.env.API_KEY, process.env.API_SECRET);
 
 const contact = await om.createContact({ phone, email });
 ```

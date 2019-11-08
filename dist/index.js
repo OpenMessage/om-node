@@ -60,70 +60,47 @@ var schemas = {
 var wreck = wreck_1.default.defaults({
     json: true
 });
-var OM = /** @class */ (function () {
-    function OM(apiKey, apiSecret, baseUrl) {
+function OM(apiKey, apiSecret, baseUrl) {
+    if (baseUrl === void 0) { baseUrl = 'https://api.omsg.io'; }
+    return __awaiter(this, void 0, void 0, function () {
+        var result, token;
         var _this = this;
-        if (!apiKey || !apiSecret) {
-            throw new Error('credentials are required');
-        }
-        this.baseUrl = baseUrl || 'https://api.omsg.io/auth/token';
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.authorized = false;
-        this.authorize().then(function (token) {
-            _this.token = token;
-        });
-    }
-    OM.prototype.createContact = function (contact) {
-        return __awaiter(this, void 0, void 0, function () {
-            var payload;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
-                        if (!this.authorized) {
-                            throw new Error('[OM] Not authorized');
-                        }
-                        return [4 /*yield*/, wreck.post(this.baseUrl + "/contacts", {
-                                payload: contact,
-                                headers: {
-                                    authorization: "Bearer " + this.token
-                                }
-                            })];
-                    case 1:
-                        payload = (_a.sent()).payload;
-                        return [2 /*return*/, payload];
-                }
-            });
-        });
-    };
-    ;
-    OM.prototype.authorize = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var payload;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, wreck.post(this.baseUrl + "/auth/token", {
-                            payload: {
-                                apiKey: this.apiKey,
-                                apiSecret: this.apiSecret
-                            }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!apiKey || !apiSecret) {
+                        throw new Error('credentials are required');
+                    }
+                    return [4 /*yield*/, wreck.post(baseUrl + "/auth/token", {
+                            payload: { apiKey: apiKey, apiSecret: apiSecret }
                         })];
-                    case 1:
-                        payload = (_a.sent()).payload;
-                        if (payload.accessToken) {
-                            this.authorized = true;
-                            this.token = payload.accessToken;
-                            console.log('[OM] - Authorized', payload.accessToken);
-                        }
-                        return [2 /*return*/, payload.accessToken];
-                }
-            });
+                case 1:
+                    result = _a.sent();
+                    token = result.payload.accessToken;
+                    return [2 /*return*/, {
+                            createContact: function (contact) { return __awaiter(_this, void 0, void 0, function () {
+                                var payload;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
+                                            return [4 /*yield*/, wreck.post(baseUrl + "/contacts", {
+                                                    payload: contact,
+                                                    headers: {
+                                                        authorization: "Bearer " + token
+                                                    }
+                                                })];
+                                        case 1:
+                                            payload = (_a.sent()).payload;
+                                            return [2 /*return*/, payload];
+                                    }
+                                });
+                            }); }
+                        }];
+            }
         });
-    };
-    ;
-    return OM;
-}());
+    });
+}
 exports.OM = OM;
 ;
 //# sourceMappingURL=index.js.map
