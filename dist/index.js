@@ -49,12 +49,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("source-map-support/register");
 var Joi = __importStar(require("@hapi/joi"));
 var wreck_1 = __importDefault(require("@hapi/wreck"));
-var AuthStatus;
-(function (AuthStatus) {
-    AuthStatus[AuthStatus["Unauthorized"] = 0] = "Unauthorized";
-    AuthStatus[AuthStatus["Authorizing"] = 1] = "Authorizing";
-    AuthStatus[AuthStatus["Authorized"] = 2] = "Authorized";
-})(AuthStatus || (AuthStatus = {}));
 var internals = {
     phone: /^\+(?:[0-9]?){6,14}[0-9]$/
 };
@@ -66,84 +60,47 @@ var schemas = {
 var wreck = wreck_1.default.defaults({
     json: true
 });
-var requestBuffer = [];
-var OM = /** @class */ (function () {
-    function OM(apiKey, apiSecret, baseUrl) {
+function OM(apiKey, apiSecret, baseUrl) {
+    if (baseUrl === void 0) { baseUrl = 'https://api.omsg.io'; }
+    return __awaiter(this, void 0, void 0, function () {
+        var result, token;
         var _this = this;
-        if (!apiKey || !apiSecret) {
-            throw new Error('credentials are required');
-        }
-        this.baseUrl = baseUrl || 'https://api.omsg.io';
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.authstatus = AuthStatus.Authorizing;
-        this.authorize().then(function (token) {
-            _this.token = token;
-            _this.authstatus = AuthStatus.Authorized;
-        });
-    }
-    OM.prototype.untilAuthorizationIsDone = function () {
-        var _this = this;
-        return new Promise(function (resolve) {
-            var checker = setInterval(function () {
-                if (AuthStatus.Authorized === _this.authstatus) {
-                    clearInterval(checker);
-                    resolve(true);
-                }
-            }, 100);
-        });
-    };
-    OM.prototype.createContact = function (contact) {
-        return __awaiter(this, void 0, void 0, function () {
-            var payload;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
-                        if (!(AuthStatus.Authorizing === this.authstatus)) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.untilAuthorizationIsDone()];
-                    case 1:
-                        _a.sent();
-                        _a.label = 2;
-                    case 2: return [4 /*yield*/, wreck.post(this.baseUrl + "/contacts", {
-                            payload: contact,
-                            headers: {
-                                authorization: "Bearer " + this.token
-                            }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!apiKey || !apiSecret) {
+                        throw new Error('credentials are required');
+                    }
+                    return [4 /*yield*/, wreck.post(baseUrl + "/auth/token", {
+                            payload: { apiKey: apiKey, apiSecret: apiSecret }
                         })];
-                    case 3:
-                        payload = (_a.sent()).payload;
-                        return [2 /*return*/, payload];
-                }
-            });
+                case 1:
+                    result = _a.sent();
+                    token = result.payload.accessToken;
+                    return [2 /*return*/, {
+                            createContact: function (contact) { return __awaiter(_this, void 0, void 0, function () {
+                                var payload;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            Joi.assert(contact, schemas.createContact, '[OM] Create Contact', { allowUnknown: true });
+                                            return [4 /*yield*/, wreck.post(baseUrl + "/contacts", {
+                                                    payload: contact,
+                                                    headers: {
+                                                        authorization: "Bearer " + token
+                                                    }
+                                                })];
+                                        case 1:
+                                            payload = (_a.sent()).payload;
+                                            return [2 /*return*/, payload];
+                                    }
+                                });
+                            }); }
+                        }];
+            }
         });
-    };
-    ;
-    OM.prototype.authorize = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var payload;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, wreck.post(this.baseUrl + "/auth/token", {
-                            payload: {
-                                apiKey: this.apiKey,
-                                apiSecret: this.apiSecret
-                            }
-                        })];
-                    case 1:
-                        payload = (_a.sent()).payload;
-                        if (payload.accessToken) {
-                            this.token = payload.accessToken;
-                            console.log('[OM] - Authorized', payload.accessToken);
-                        }
-                        return [2 /*return*/, payload.accessToken];
-                }
-            });
-        });
-    };
-    ;
-    return OM;
-}());
+    });
+}
 exports.OM = OM;
 ;
 //# sourceMappingURL=index.js.map
