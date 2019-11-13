@@ -55,7 +55,15 @@ var internals = {
 var schemas = {
     createContact: Joi.object({
         phone: Joi.string().regex(internals.phone).required()
-    }).required()
+    }).required(),
+    sendMessage: Joi.object().keys({
+        templateId: Joi.number().integer().positive().allow(null),
+        contactId: Joi.number().integer().positive().allow(null),
+        phone: Joi.string().allow(null),
+        context: Joi.object().keys({
+            text: Joi.string().allow(null)
+        }).default({}).unknown(true)
+    })
 };
 var wreck = wreck_1.default.defaults({
     json: true
@@ -93,6 +101,24 @@ function OM(apiKey, apiSecret, baseUrl) {
                                         case 1:
                                             payload = (_a.sent()).payload;
                                             return [2 /*return*/, payload];
+                                    }
+                                });
+                            }); },
+                            sendMessage: function (message) { return __awaiter(_this, void 0, void 0, function () {
+                                var payload;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            Joi.assert(message, schemas.sendMessage, '[OM] Send Message', { allowUnknown: true });
+                                            return [4 /*yield*/, wreck.post(baseUrl + "/messages/send", {
+                                                    payload: message,
+                                                    headers: {
+                                                        authorization: "Bearer " + token
+                                                    }
+                                                })];
+                                        case 1:
+                                            payload = (_a.sent()).payload;
+                                            return [2 /*return*/];
                                     }
                                 });
                             }); }
