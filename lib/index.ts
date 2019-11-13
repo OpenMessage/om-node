@@ -9,7 +9,15 @@ const internals = {
 const schemas = {
     createContact: Joi.object({
         phone: Joi.string().regex(internals.phone).required()
-    }).required()
+    }).required(),
+    sendMessage: Joi.object().keys({
+        templateId: Joi.number().integer().positive().allow(null),
+        contactId: Joi.number().integer().positive().allow(null),
+        phone: Joi.string().allow(null),
+        context: Joi.object().keys({
+            text: Joi.string().allow(null)
+        }).default({}).unknown(true)
+    })
 };
 
 const wreck = Wreck.defaults({
@@ -46,6 +54,17 @@ export async function OM (
             });
 
             return payload;
+        },
+        sendMessage: async (message: object) => {
+            
+            Joi.assert(message, schemas.sendMessage, '[OM] Send Message', { allowUnknown: true });
+
+            const { payload } = await wreck.post(`${baseUrl}/messages/send`, {
+                payload: message,
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            });
         }
     };
 };
